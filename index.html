@@ -3,11 +3,28 @@
   <head>
     <meta charset="UTF-8">
     <link rel="icon" href="/favicon.ico">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vite App</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+
+    <title>智能眼镜应用</title>
   </head>
   <body>
     <div id="app"></div>
+    <!-- 引入微信JS-SDK的CDN链接 -->
+    <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
+    
+    <!-- 微信SDK加载检查 -->
+    <script>
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          if (typeof window.wx === 'undefined') {
+            console.warn('微信SDK加载失败，请检查网络连接或CDN链接是否正确');
+          } else {
+            console.log('微信SDK加载成功，版本:', window.wx.version || '未知');
+          }
+        }, 1000);
+      });
+    </script>
+    
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
