@@ -1,17 +1,28 @@
 <template>
   <div class="home-container">
     <div class="title">Silicon AI</div>
-    <div class="open-btn">打开蓝牙设置</div>
+    <div class="open-btn" v-if="!isConnect">打开蓝牙设置</div>
+    <div class="open-btn" v-else>智能眼镜型号</div>
     <div class="glass-box">
       <img src="../assets/images/glass-photo.png" class="glass-photo" alt="" />
-      <div class="glass-tips">设备未连接</div>
-      <div class="glass-tips">请在手机蓝牙设置中连接智能眼镜</div>
-      <div class="add-glass-btn">
-        <img class="add-icon" src="../assets/images/add.png" alt="" />
-        <span>添加设备</span>
+      <div v-if="!isConnect">
+        <div class="glass-tips">设备未连接</div>
+        <div class="glass-tips">请在手机蓝牙设置中连接智能眼镜</div>
+        <div class="add-glass-btn">
+          <img class="add-icon" src="../assets/images/add.png" alt="" />
+          <span>添加设备</span>
+        </div>
+      </div>
+      <div v-else>
+        <div class="connect-box">
+          <img src="../assets/images/bluetooth.png" class="bluetooth-icon" alt="">
+          <div>设备已连接</div>
+        </div>
+        <div class="disconnect-btn">断开连接</div>
       </div>
     </div>
-    <div class="discover-box">
+    <!-- 发现的设备列表 -->
+    <div class="discover-box" v-if="!isConnect">
       <div class="discover-title">发现的设备</div>
       <div>
         <div class="discover-item">
@@ -19,8 +30,68 @@
           <div class="discover-id">0a32ee0d-3e91-58b1-15b7-e1fb563e39d3</div>
           <div class="discover-btn">点击连接</div>
         </div>
+        <div class="discover-item">
+          <div class="discover-name">Zzz01</div>
+          <div class="discover-id">0a32ee0d-3e91-58b1-15b7-e1fb563e39d3</div>
+          <div class="discover-btn">点击连接</div>
+        </div>
+        <div class="discover-item">
+          <div class="discover-name">Zzz01</div>
+          <div class="discover-id">0a32ee0d-3e91-58b1-15b7-e1fb563e39d3</div>
+          <div class="discover-btn">点击连接</div>
+        </div>
       </div>
     </div>
+    <!-- 已连接设备信息 -->
+    <div v-else class="connect-info">
+      <!-- 电量信息 -->
+      <div class="battery-info">
+        <div class="battery-box">
+          <span>剩余电量</span>
+          <img class="battery-icon" src="../assets/images/battery.png" alt="">
+        </div>
+        <div class="battery-percent">
+          <div class="left-battery">
+            <div class="left-battery-box">
+              <span class="left-battery-text">L</span>
+              <span class="left-battery-time">5小时30分钟</span>
+            </div>
+            <div class="battery-line-box">
+              <div class="battery-line">
+                <div class="battery-line-fill"></div>
+              </div>
+              <div class="battery-line-text">50%</div>
+            </div>
+          </div>
+          <div class="right-battery">
+            <div class="right-battery-box">
+              <span class="right-battery-text">R</span>
+              <span class="right-battery-time">7小时20分钟</span>
+            </div>
+           <div class="battery-line-box">
+              <div class="battery-line">
+                <div class="battery-line-fill"></div>
+              </div>
+              <div class="battery-line-text">50%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- 音量信息 -->
+       <div class="volume-info">
+        <div class="volume-box">
+          <span>音量</span>
+          <img class="volume-icon" src="../assets/images/volume2.png" alt="">
+        </div>
+        <div class="volume-bar-box">
+          <img class="volume-icon2" src="../assets/images/volume.png" alt="">
+          <div class="volume-line">
+            <div class="volume-line-fill"></div>
+          </div>
+        </div>
+       </div>
+    </div>
+    <div class="brand-name">Silicon AI</div>
   </div>
 </template>
 
@@ -30,6 +101,7 @@ import { ref, onMounted } from "vue";
 import axios from "axios";
 import wx from "weixin-js-sdk";
 
+let isConnect = ref(false);
 async function initWx() {
   console.log("===== initWx函数开始执行 ====");
   
@@ -120,6 +192,7 @@ async function initWx() {
               icon: "success",
               duration: 2000,
             });
+            checkBluetooth()
           } catch (toastError) {
             console.warn("showToast调用失败:", toastError);
           }
@@ -240,7 +313,8 @@ onMounted(() => {
   background: linear-gradient(#ccdee8 0%, #f7f7f7 100%);
   height: 100%;
   width: 100%;
-  padding: 8px 15px;
+  padding: 8px 15px 20px;
+  overflow-y: scroll;
 }
 .title {
   color: #242748;
@@ -285,9 +359,33 @@ onMounted(() => {
     }
   }
 }
+.connect-box {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #000000;
+  font-size: 14px;
+  .bluetooth-icon {
+    width: 18px;
+    height: 18px;
+  }
+}
+.disconnect-btn {
+  background-color: #242748;
+  border-radius: 8px;
+  color: #FFFFFF;
+  font-weight: Medium;
+  font-size: 16px;
+  padding: 2px 0;
+  width: 96px;
+  margin: 60px auto 0;
+  text-align: center;;
+}
 .discover-box {
   margin-top: 60px;
   padding: 0 40px;
+  z-index: 2;
+  position: relative;
   .discover-title {
     font-size: 14px;
     color: #a19d9d;
@@ -314,6 +412,109 @@ onMounted(() => {
       color: #242748;
       font-size: 12px;
       margin-top: 10px;
+    }
+  }
+  .discover-item + .discover-item {
+    margin-top: 10px;
+  }
+}
+.brand-name {
+  font-size: 80px;
+  font-weight: Medium;
+  color: #DCDEE3;
+  position: fixed;
+  bottom: 40px;
+  z-index: 1;
+  // left: 50%;
+  // transform: translateX(-50%);
+}
+.connect-info {
+  position: relative;
+  z-index: 3;
+  margin-top: 30px;
+  color: #000;
+  .battery-info, .volume-info {
+    box-shadow: 0px 2px 4px 0px rgba(36, 39, 72, 0.35);
+    background-color: #fff;
+    border-radius: 12px;
+    padding: 8px 17px;
+  }
+  .volume-info {
+    margin-top: 10px;
+  }
+  .battery-box, .volume-box {
+    display: flex;
+    align-items: center;
+  }
+  .battery-icon, .volume-icon {
+    width: 14px;
+    height: 14px;
+    margin-left: 5px;
+    margin-top: -1px;
+  }
+  .battery-percent {
+    margin-top: 10px;
+    display: flex;
+    justify-content: space-between;
+    gap: 40px;
+    font-size: 12px;
+    color: #000000;
+    font-family: SourceHanSansCN;
+    .left-battery, .right-battery {
+      flex: 1;
+    }
+    .left-battery-text, .right-battery-text {
+      font-weight: bold;
+      font-size: 14px;
+    }
+    .left-battery-time, .right-battery-time {
+      font-weight: 400 !important;
+      margin-left: 5px;
+    }
+    .battery-line-box {
+      display: flex;
+      align-items: center;
+      margin-top: 10px;
+      .battery-line-text {
+        color: #A19D9D;
+        font-size: 12px;
+        margin-left: 4px;
+        margin-top: -2px;
+      }
+    }
+    .battery-line {
+      width: 100%;
+      height: 6px;
+      background-color: #D8D8D8;
+      border-radius: 3px;
+      .battery-line-fill {
+        background-color: #242748;
+        width: 50%;
+        height: 100%;
+        border-radius: 3px;
+      }
+    }
+  }
+  .volume-bar-box {
+    margin-top: 10px;
+    display: flex;
+
+    .volume-icon2 {
+      width: 17px;
+      height: 17px;
+      margin-right: 5px;
+    }
+    .volume-line {
+      width: 100%;
+      height: 16px;
+      background-color: #D8D8D8;
+      border-radius: 5px;
+      .volume-line-fill {
+        width: 50%;
+        height: 100%;
+        background-color: #242748;
+        border-radius: 5px;
+      }
     }
   }
 }
