@@ -1,7 +1,9 @@
 <template>
   <div class="home-container">
     <div class="title">Silicon AI</div>
-    <div class="open-btn" v-if="!isConnect">打开蓝牙设置</div>
+    <div class="open-btn" v-if="!isConnect" @click="openBluetoothSettings">
+      打开蓝牙设置
+    </div>
     <div class="open-btn" v-else>智能眼镜型号</div>
     <div class="glass-box">
       <img src="../assets/images/glass-photo.png" class="glass-photo" alt="" />
@@ -15,10 +17,14 @@
       </div>
       <div v-else>
         <div class="connect-box">
-          <img src="../assets/images/bluetooth.png" class="bluetooth-icon" alt="">
+          <img
+            src="../assets/images/bluetooth.png"
+            class="bluetooth-icon"
+            alt=""
+          />
           <div>设备已连接</div>
         </div>
-        <div class="disconnect-btn">断开连接</div>
+        <div class="disconnect-btn" @click="disconnectBtn">断开连接</div>
       </div>
     </div>
     <!-- 发现的设备列表 -->
@@ -48,7 +54,7 @@
       <div class="battery-info">
         <div class="battery-box">
           <span>剩余电量</span>
-          <img class="battery-icon" src="../assets/images/battery.png" alt="">
+          <img class="battery-icon" src="../assets/images/battery.png" alt="" />
         </div>
         <div class="battery-percent">
           <div class="left-battery">
@@ -68,7 +74,7 @@
               <span class="right-battery-text">R</span>
               <span class="right-battery-time">7小时20分钟</span>
             </div>
-           <div class="battery-line-box">
+            <div class="battery-line-box">
               <div class="battery-line">
                 <div class="battery-line-fill"></div>
               </div>
@@ -78,18 +84,18 @@
         </div>
       </div>
       <!-- 音量信息 -->
-       <div class="volume-info">
+      <div class="volume-info">
         <div class="volume-box">
           <span>音量</span>
-          <img class="volume-icon" src="../assets/images/volume2.png" alt="">
+          <img class="volume-icon" src="../assets/images/volume2.png" alt="" />
         </div>
         <div class="volume-bar-box">
-          <img class="volume-icon2" src="../assets/images/volume.png" alt="">
+          <img class="volume-icon2" src="../assets/images/volume.png" alt="" />
           <div class="volume-line">
             <div class="volume-line-fill"></div>
           </div>
         </div>
-       </div>
+      </div>
     </div>
     <div class="brand-name">Silicon AI</div>
   </div>
@@ -97,50 +103,85 @@
 
 <script setup>
 import { ref, onMounted } from "vue";
-// import Bridge from "./bridge";
+import Bridge from "./bridge";
 import axios from "axios";
 import wx from "weixin-js-sdk";
 
+const wxInstance = wx || window.wx;
+
 let isConnect = ref(false);
+// 添加一个JavaScript原生toast函数作为回退
+function showNativeToast(message, duration = 2000) {
+  // 检查是否已经存在toast元素
+  let toast = document.getElementById("native-toast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "native-toast";
+    toast.style.position = "fixed";
+    toast.style.top = "50%";
+    toast.style.left = "50%";
+    toast.style.transform = "translate(-50%, -50%)";
+    toast.style.backgroundColor = "rgba(0, 0, 0, 0.7)";
+    toast.style.color = "white";
+    toast.style.padding = "10px 15px";
+    toast.style.borderRadius = "5px";
+    toast.style.zIndex = "9999";
+    toast.style.fontSize = "14px";
+    document.body.appendChild(toast);
+  }
+
+  toast.textContent = message;
+  toast.style.display = "block";
+
+  setTimeout(() => {
+    toast.style.display = "none";
+  }, duration);
+}
 async function initWx() {
   console.log("===== initWx函数开始执行 ====");
-  
+
   // 检查wx对象
-  console.log("-------12初始化------", typeof wx === 'undefined' ? 'wx未定义' : wx);
-  console.log("window.wx状态:", typeof window.wx === 'undefined' ? '未定义' : window.wx);
-  
+  console.log(
+    "-------12初始化------",
+    typeof wx === "undefined" ? "wx未定义" : wx
+  );
+  console.log(
+    "window.wx状态:",
+    typeof window.wx === "undefined" ? "未定义" : window.wx
+  );
+
   if (!wx && !window.wx) {
-    console.error("错误: 微信SDK未加载，请检查是否在index.html中正确引入了微信SDK的CDN链接");
-    alert("微信SDK未加载，请检查index.html配置");
+    console.error(
+      "错误: 微信SDK未加载，请检查是否在index.html中正确引入了微信SDK的CDN链接"
+    );
     return;
   }
-  
+
   // 统一使用一个wx引用
-  const wxInstance = wx || window.wx;
-  
+
   // 准备请求参数
   const nonceStr = Math.random().toString(36).substr(2, 15);
   const timestamp = Math.floor(Date.now() / 1000);
   const url = window.location.href.split("#")[0];
-  
+
   console.log("-------33参数信息------");
   console.log("nonceStr:", nonceStr);
   console.log("timestamp:", timestamp);
   console.log("url:", url);
-  
+
   // 检查是否在微信环境中运行
   const isWechat = /MicroMessenger/i.test(navigator.userAgent);
   console.log("是否在微信环境中:", isWechat);
-  
+
   try {
     console.log("开始请求签名接口: https://yb.c-er.com/api/index/mnp_sign");
-    
+
     // 添加超时设置
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
-    
+
     const res = await axios.post(
-      "https://yb.c-er.com/api/index/mnp_sign", 
+      "https://yb.c-er.com/api/index/mnp_sign",
       {
         nonceStr,
         timestamp,
@@ -148,94 +189,73 @@ async function initWx() {
       },
       {
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        signal: controller.signal
+        signal: controller.signal,
       }
     );
-    
+
     clearTimeout(timeoutId); // 清除超时计时器
-    
+
     console.log("-------44res------:::", res);
     console.log("响应状态码:", res.status);
     console.log("响应数据结构:", JSON.stringify(res.data, null, 2));
-    
+
     if (res.status === 200) {
       if (res.data && res.data.code === 1 && res.data.data?.sign) {
         console.log("获取签名成功，开始配置微信SDK");
-        
-        // 检查是否是在小程序环境中运行
-        const isMiniProgram = window.__wxjs_environment === 'miniprogram';
-        console.log("是否在小程序环境中:", isMiniProgram);
-        
+
+        // 使用bridge检查小程序环境
+        const isMiniProgram = Bridge.checkMiniProgram();
+
         wxInstance.config({
-          debug: true, // 开启调试模式，便于查看错误
-          appId: "wx932724bb28254f89",
+          debug: false, // 生产环境关闭调试模式
+          appId: "wxb436c2c6a74a67ac",
           timestamp,
           nonceStr,
           signature: res.data.data.sign,
           jsApiList: [
             "checkJsApi",
+            "openBluetoothAdapter",
             "startBluetoothDevicesDiscovery",
             "createBLEConnection",
           ],
         });
-        
+
         console.log("-------55配置完成------");
-        
+
         // 微信SDK准备就绪回调
         wxInstance.ready(function () {
           console.log("微信SDK初始化成功");
           try {
-            wxInstance.showToast({
-              title: "初始化成功",
-              icon: "success",
-              duration: 2000,
-            });
-            checkBluetooth()
+            // 检查是否支持showToast方法
+            // if (typeof wxInstance.showToast === "function") {
+            //   wxInstance.showToast({
+            //     title: "初始化成功",
+            //     icon: "success",
+            //     duration: 2000,
+            //   });
+            // } else {
+            // showNativeToast("初始化成功", 2000);
+            // }
+            checkBluetoothAvailable();
           } catch (toastError) {
             console.warn("showToast调用失败:", toastError);
+            showNativeToast("初始化成功", 2000);
           }
         });
-        
+
         // 微信SDK错误回调 - 专门处理域名错误
         wxInstance.error(function (err) {
           console.error("微信SDK初始化失败:", JSON.stringify(err, null, 2));
-          
-          // 专门处理域名错误
-          if (err && (err.errMsg === 'config:invalid url domain' || JSON.stringify(err).includes('invalid url domain'))) {
-            console.error("微信域名错误: 当前域名未在微信公众平台JS接口安全域名列表中配置");
-            alert("初始化失败: 当前域名未在微信公众平台配置\n请在微信公众平台-开发-接口权限-网页授权-修改JS接口安全域名");
-          } else {
-            alert("微信SDK初始化失败: " + JSON.stringify(err));
-          }
         });
       } else {
-        console.error("获取签名失败: 响应数据格式不正确");
         console.error("code:", res.data?.code);
         console.error("msg:", res.data?.msg);
-        alert("获取微信签名失败: " + (res.data?.msg || "未知错误"));
       }
     } else {
-      console.error("请求签名接口失败: HTTP状态码异常", res.status);
-      alert("网络请求失败: 状态码 " + res.status);
     }
-  } catch (err) {
-    console.error("===== initWx函数执行异常 =====");
-    if (err.name === 'AbortError') {
-      console.error("请求超时: 超过10秒未收到响应");
-      alert("请求微信签名超时，请检查网络连接");
-    } else if (err.code === 'ERR_NETWORK') {
-      console.error("网络错误: 无法连接到服务器");
-      console.error("错误详情:", err);
-      alert("网络连接失败，请检查网络设置");
-    } else {
-      console.error("请求签名接口异常:", JSON.stringify(err, null, 2));
-      console.error("错误类型:", err.name);
-      console.error("错误信息:", err.message);
-      alert("初始化微信SDK失败: " + (err.message || "未知错误"));
-    }
-  }
+  } catch (err) {}
   console.log("===== initWx函数执行结束 ====");
 }
 // ...existing code...
@@ -245,20 +265,54 @@ const devices = ref([]);
 const notifyData = ref("");
 const connectedDevices = ref(new Set());
 
-function checkBluetooth() {
+function checkBluetoothAvailable() {
   console.log("正在检查蓝牙权限检查");
-  wx.miniProgram.invoke("checkBluetoothPermission", {}, (res) => {
-    console.log("蓝牙权限检查:", res);
-    hasPermission.value = res.granted;
+  
+  // 先检查Bridge实例是否可用
+  if (!Bridge || typeof Bridge.call !== 'function') {
+    console.error("Bridge实例不可用或call方法不存在");
+    showNativeToast("通信模块未初始化，请刷新页面重试", 2000);
+    return;
+  }
 
-    // ✅ 如果已经有权限，自动开始扫描
-    if (res.granted) {
-      scanDevices();
-    }
-  });
+  // 使用bridge.js提供的call方法来检查蓝牙权限
+  Bridge.call("checkBluetoothPermission", {})
+    .then((res) => {
+      console.log("蓝牙权限检查结果:", res);
+      // 更宽松的判断条件，适应可能的不同返回格式
+      if (res && (res.granted || res.success || res.code === 0)) {
+        console.log("蓝牙权限已获取，开始扫描设备");
+        scanDevices();
+      } else {
+        console.warn("未获取到蓝牙权限");
+        showNativeToast("请授权小程序使用蓝牙功能", 2000);
+      }
+    })
+    .catch((error) => {
+      console.error("检查蓝牙权限失败:", error);
+      // 提供更详细的错误信息
+      const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+      console.error("错误详情:", errorMessage);
+      
+      // 根据错误类型显示不同的提示信息
+      if (errorMessage.includes('不在小程序环境中')) {
+        showNativeToast("请在微信小程序中打开此页面以使用蓝牙功能", 3000);
+      } else if (errorMessage.includes('超时')) {
+        showNativeToast("蓝牙权限检查超时，请检查网络连接", 3000);
+      } else if (errorMessage.includes('postMessage')) {
+        showNativeToast("通信接口不可用，请升级微信版本", 3000);
+      } else {
+        showNativeToast("检查蓝牙权限失败，请稍后重试", 2000);
+      }
+    });
 }
 
 function openBluetoothSettings() {
+  wxInstance.openSetting({
+    success: (res) => {
+      console.log("打开设置页面");
+    },
+  });
   //   console.log('在小程序里打开蓝牙设置页面');
   //   wx.miniProgram.postMessage({
   //   data: {
@@ -272,8 +326,9 @@ function openBluetoothSettings() {
 }
 
 function scanDevices() {
-  wx.miniProgram.invoke("startBluetoothDevicesDiscovery", {}, (res) => {
-    if (res.devices?.length) {
+  // 使用bridge调用小程序的扫描设备方法
+  Bridge.invoke("startBluetoothDevicesDiscovery", {}, (res) => {
+    if (res && res.devices?.length) {
       res.devices.forEach((d) => {
         if (!devices.value.find((item) => item.deviceId === d.deviceId)) {
           devices.value.push(d);
@@ -286,25 +341,46 @@ function scanDevices() {
 function connectDevice(deviceId) {
   if (connectedDevices.value.has(deviceId)) {
     console.log("设备已连接:", deviceId);
+    isConnect.value = true;
     return;
   }
 
-  wx.miniProgram.invoke("createBLEConnection", { deviceId }, (res) => {
-    if (res.type === "connected") {
+  // 使用bridge调用小程序的连接设备方法
+  Bridge.invoke("createBLEConnection", { deviceId }, (res) => {
+    if (res && res.type === "connected") {
       console.log("设备连接成功:", res);
       connectedDevices.value.add(deviceId);
-    } else if (res.type === "notify") {
+      isConnect.value = true;
+    } else if (res && res.type === "notify") {
       console.log("收到设备数据:", res.data);
       notifyData.value = JSON.stringify(res.data, null, 2);
-    } else if (res.type === "error") {
+    } else if (res && res.type === "error") {
       console.error("蓝牙错误:", res.msg);
     }
   });
 }
 
+function disconnectBtn() {
+  console.log("正在断开设备连接");
+
+  // 遍历所有已连接的设备并断开连接
+  connectedDevices.value.forEach((deviceId) => {
+    // 使用bridge调用小程序的断开连接方法
+    Bridge.invoke("closeBLEConnection", { deviceId }, (res) => {
+      if (res && res.success) {
+        console.log("设备断开连接成功:", deviceId);
+        connectedDevices.value.delete(deviceId);
+        isConnect.value = false;
+      } else {
+        console.error("设备断开连接失败:", res?.msg || "未知错误");
+      }
+    });
+  });
+}
+
 onMounted(() => {
   initWx();
-  // checkBluetooth();
+  // checkBluetoothAvailable();
 });
 </script>
 
@@ -373,13 +449,13 @@ onMounted(() => {
 .disconnect-btn {
   background-color: #242748;
   border-radius: 8px;
-  color: #FFFFFF;
+  color: #ffffff;
   font-weight: Medium;
   font-size: 16px;
   padding: 2px 0;
   width: 96px;
   margin: 60px auto 0;
-  text-align: center;;
+  text-align: center;
 }
 .discover-box {
   margin-top: 60px;
@@ -421,7 +497,7 @@ onMounted(() => {
 .brand-name {
   font-size: 80px;
   font-weight: Medium;
-  color: #DCDEE3;
+  color: #dcdee3;
   position: fixed;
   bottom: 40px;
   z-index: 1;
@@ -433,7 +509,8 @@ onMounted(() => {
   z-index: 3;
   margin-top: 30px;
   color: #000;
-  .battery-info, .volume-info {
+  .battery-info,
+  .volume-info {
     box-shadow: 0px 2px 4px 0px rgba(36, 39, 72, 0.35);
     background-color: #fff;
     border-radius: 12px;
@@ -442,11 +519,13 @@ onMounted(() => {
   .volume-info {
     margin-top: 10px;
   }
-  .battery-box, .volume-box {
+  .battery-box,
+  .volume-box {
     display: flex;
     align-items: center;
   }
-  .battery-icon, .volume-icon {
+  .battery-icon,
+  .volume-icon {
     width: 14px;
     height: 14px;
     margin-left: 5px;
@@ -460,14 +539,17 @@ onMounted(() => {
     font-size: 12px;
     color: #000000;
     font-family: SourceHanSansCN;
-    .left-battery, .right-battery {
+    .left-battery,
+    .right-battery {
       flex: 1;
     }
-    .left-battery-text, .right-battery-text {
+    .left-battery-text,
+    .right-battery-text {
       font-weight: bold;
       font-size: 14px;
     }
-    .left-battery-time, .right-battery-time {
+    .left-battery-time,
+    .right-battery-time {
       font-weight: 400 !important;
       margin-left: 5px;
     }
@@ -476,7 +558,7 @@ onMounted(() => {
       align-items: center;
       margin-top: 10px;
       .battery-line-text {
-        color: #A19D9D;
+        color: #a19d9d;
         font-size: 12px;
         margin-left: 4px;
         margin-top: -2px;
@@ -485,7 +567,7 @@ onMounted(() => {
     .battery-line {
       width: 100%;
       height: 6px;
-      background-color: #D8D8D8;
+      background-color: #d8d8d8;
       border-radius: 3px;
       .battery-line-fill {
         background-color: #242748;
@@ -507,7 +589,7 @@ onMounted(() => {
     .volume-line {
       width: 100%;
       height: 16px;
-      background-color: #D8D8D8;
+      background-color: #d8d8d8;
       border-radius: 5px;
       .volume-line-fill {
         width: 50%;
