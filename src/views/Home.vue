@@ -265,6 +265,10 @@ const devices = ref([]);
 const notifyData = ref("");
 const connectedDevices = ref(new Set());
 
+// 添加重试计数器
+let bluetoothPermissionRetryCount = 0;
+const MAX_RETRY_COUNT = 2; // 最多重试2次
+
 function checkBluetoothAvailable() {
   console.log("正在检查蓝牙权限检查");
   
@@ -279,6 +283,9 @@ function checkBluetoothAvailable() {
   Bridge.call("checkBluetoothPermission", {})
     .then((res) => {
       console.log("蓝牙权限检查结果:", res);
+      // 重置重试计数器
+      bluetoothPermissionRetryCount = 0;
+      
       // 更宽松的判断条件，适应可能的不同返回格式
       if (res && (res.granted || res.success || res.code === 0)) {
         console.log("蓝牙权限已获取，开始扫描设备");
@@ -298,7 +305,21 @@ function checkBluetoothAvailable() {
       if (errorMessage.includes('不在小程序环境中')) {
         showNativeToast("请在微信小程序中打开此页面以使用蓝牙功能", 3000);
       } else if (errorMessage.includes('超时')) {
-        showNativeToast("蓝牙权限检查超时，请检查网络连接", 3000);
+        // 超时错误添加重试机制
+        if (bluetoothPermissionRetryCount < MAX_RETRY_COUNT) {
+          bluetoothPermissionRetryCount++;
+          console.log(`蓝牙权限检查超时，第${bluetoothPermissionRetryCount}次重试...`);
+          showNativeToast(`蓝牙权限检查超时，正在重试(${bluetoothPermissionRetryCount}/${MAX_RETRY_COUNT})...`, 2000);
+          
+          // 延迟1秒后重试
+          setTimeout(() => {
+            checkBluetoothAvailable();
+          }, 1000);
+        } else {
+          // 超过最大重试次数
+          bluetoothPermissionRetryCount = 0;
+          showNativeToast("蓝牙权限检查多次超时，请检查网络连接或稍后重试", 3000);
+        }
       } else if (errorMessage.includes('postMessage')) {
         showNativeToast("通信接口不可用，请升级微信版本", 3000);
       } else {
