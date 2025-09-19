@@ -1,7 +1,38 @@
 <template>
   <div class="home-container">
-    <div class="title">Silicon AI</div>
-    <div class="open-btn" v-if="!isConnect" @click="openBluetoothSettings">
+    <!-- <h1>小程序H5通信示例</h1>
+
+    <h3>URL通信方式（推荐）</h3>
+    <button @click="sendMessageByUrl('button_clicked')">
+      点击我 - URL方式
+    </button>
+    <button @click="sendJsonMessageByUrl({type: 'startSearch'})">
+      开始搜索设备 - URL方式
+    </button>
+
+    <h3>postMessage方式（备用）</h3>
+    <button @click="sendMessageByPostMessage('button_clicked')">
+      点击我 - postMessage方式
+    </button>
+
+    <div class="info">
+      <p>💡 <strong>URL通信方式优点：</strong></p>
+      <ul>
+        <li>实时性更好，小程序能立即接收到消息</li>
+        <li>可靠性更高，不受微信postMessage机制限制</li>
+        <li>适用于需要即时响应的场景</li>
+      </ul>
+      <p>
+        🔧
+        <strong>实现原理：</strong
+        >通过修改页面URL（添加消息参数），触发小程序web-view的bindload事件，小程序解析URL中的消息并处理。
+      </p>
+    </div> -->
+    <div
+      class="open-btn"
+      v-if="!isConnect"
+      @click="sendMessageByUrl('openBluetoothSettings')"
+    >
       打开蓝牙设置
     </div>
     <div class="open-btn" v-else>智能眼镜型号</div>
@@ -10,7 +41,7 @@
       <div v-if="!isConnect">
         <div class="glass-tips">设备未连接</div>
         <div class="glass-tips">请在手机蓝牙设置中连接智能眼镜</div>
-        <div class="add-glass-btn">
+        <div class="add-glass-btn" @click="sendMessageByUrl('startSearch')">
           <img class="add-icon" src="../assets/images/add.png" alt="" />
           <span>添加设备</span>
         </div>
@@ -197,13 +228,8 @@ async function initWx() {
 
     clearTimeout(timeoutId); // 清除超时计时器
 
-    console.log("-------44res------:::", res);
-    console.log("响应状态码:", res.status);
-    console.log("响应数据结构:", JSON.stringify(res.data, null, 2));
-
     if (res.status === 200) {
       if (res.data && res.data.code === 1 && res.data.data?.sign) {
-        console.log("获取签名成功，开始配置微信SDK");
 
         // 使用bridge检查小程序环境
         const isMiniProgram = Bridge.checkMiniProgram();
@@ -222,23 +248,11 @@ async function initWx() {
           ],
         });
 
-        console.log("-------55配置完成------");
 
         // 微信SDK准备就绪回调
         wxInstance.ready(function () {
-          console.log("微信SDK初始化成功");
           try {
-            // 检查是否支持showToast方法
-            // if (typeof wxInstance.showToast === "function") {
-            //   wxInstance.showToast({
-            //     title: "初始化成功",
-            //     icon: "success",
-            //     duration: 2000,
-            //   });
-            // } else {
-            // showNativeToast("初始化成功", 2000);
-            // }
-            checkBluetoothAvailable();
+            // openBluetoothSettings()
           } catch (toastError) {
             console.warn("showToast调用失败:", toastError);
             showNativeToast("初始化成功", 2000);
@@ -256,7 +270,12 @@ async function initWx() {
     } else {
     }
   } catch (err) {}
-  console.log("===== initWx函数执行结束 ====");
+}
+
+function handleAddGlass() {
+  wx.miniProgram.navigateTo({
+    url: "/pages/index/index?type=addGlass",
+  });
 }
 // ...existing code...
 
@@ -271,9 +290,9 @@ const MAX_RETRY_COUNT = 2; // 最多重试2次
 
 function checkBluetoothAvailable() {
   console.log("正在检查蓝牙权限检查");
-  
+
   // 先检查Bridge实例是否可用
-  if (!Bridge || typeof Bridge.call !== 'function') {
+  if (!Bridge || typeof Bridge.call !== "function") {
     console.error("Bridge实例不可用或call方法不存在");
     showNativeToast("通信模块未初始化，请刷新页面重试", 2000);
     return;
@@ -285,7 +304,7 @@ function checkBluetoothAvailable() {
       console.log("蓝牙权限检查结果:", res);
       // 重置重试计数器
       bluetoothPermissionRetryCount = 0;
-      
+
       // 更宽松的判断条件，适应可能的不同返回格式
       if (res && (res.granted || res.success || res.code === 0)) {
         console.log("蓝牙权限已获取，开始扫描设备");
@@ -298,19 +317,25 @@ function checkBluetoothAvailable() {
     .catch((error) => {
       console.error("检查蓝牙权限失败:", error);
       // 提供更详细的错误信息
-      const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
       console.error("错误详情:", errorMessage);
-      
+
       // 根据错误类型显示不同的提示信息
-      if (errorMessage.includes('不在小程序环境中')) {
+      if (errorMessage.includes("不在小程序环境中")) {
         showNativeToast("请在微信小程序中打开此页面以使用蓝牙功能", 3000);
-      } else if (errorMessage.includes('超时')) {
+      } else if (errorMessage.includes("超时")) {
         // 超时错误添加重试机制
         if (bluetoothPermissionRetryCount < MAX_RETRY_COUNT) {
           bluetoothPermissionRetryCount++;
-          console.log(`蓝牙权限检查超时，第${bluetoothPermissionRetryCount}次重试...`);
-          showNativeToast(`蓝牙权限检查超时，正在重试(${bluetoothPermissionRetryCount}/${MAX_RETRY_COUNT})...`, 2000);
-          
+          console.log(
+            `蓝牙权限检查超时，第${bluetoothPermissionRetryCount}次重试...`
+          );
+          showNativeToast(
+            `蓝牙权限检查超时，正在重试(${bluetoothPermissionRetryCount}/${MAX_RETRY_COUNT})...`,
+            2000
+          );
+
           // 延迟1秒后重试
           setTimeout(() => {
             checkBluetoothAvailable();
@@ -318,9 +343,12 @@ function checkBluetoothAvailable() {
         } else {
           // 超过最大重试次数
           bluetoothPermissionRetryCount = 0;
-          showNativeToast("蓝牙权限检查多次超时，请检查网络连接或稍后重试", 3000);
+          showNativeToast(
+            "蓝牙权限检查多次超时，请检查网络连接或稍后重试",
+            3000
+          );
         }
-      } else if (errorMessage.includes('postMessage')) {
+      } else if (errorMessage.includes("postMessage")) {
         showNativeToast("通信接口不可用，请升级微信版本", 3000);
       } else {
         showNativeToast("检查蓝牙权限失败，请稍后重试", 2000);
@@ -329,21 +357,42 @@ function checkBluetoothAvailable() {
 }
 
 function openBluetoothSettings() {
-  wxInstance.openSetting({
-    success: (res) => {
-      console.log("打开设置页面");
-    },
+  console.log("点击了打开蓝牙设置按钮，尝试与小程序通信");
+
+  // 备选方案：使用原始的wx.miniProgram.postMessage方法
+  wx.miniProgram.postMessage({
+    data: "button_clicked",
   });
-  //   console.log('在小程序里打开蓝牙设置页面');
-  //   wx.miniProgram.postMessage({
-  //   data: {
-  //     action: "checkBluetoothPermission",
-  //   },
-  // });
-  // 检查蓝牙权限
-  // Bridge.call("checkBluetoothPermission").then((res) => {
-  //   console.log("蓝牙权限检查结果:", res);
-  // });
+  // Bridge.call("openBluetoothSettings", {}, function (res) {
+
+  // })
+  // wx.miniProgram.onCopyUrl(() => {
+  //   console.log("点击了复制链接按钮，尝试与小程序通信");
+  //   return '111111'
+  // })
+  setTimeout(() => {
+    window.scrollTo(0, 0); // 执行页面滚动操作触发消息传递
+  }, 100);
+  showNativeToast("正在请求蓝牙权限...", 2000);
+}
+
+// 统一处理Bridge调用错误的辅助函数
+function handleBridgeError(error) {
+  const errorMessage =
+    error instanceof Error ? error.message : JSON.stringify(error);
+
+  // 根据错误类型显示不同的提示信息
+  if (errorMessage.includes("wx对象不存在")) {
+    showNativeToast("当前不在微信环境中", 3000);
+  } else if (errorMessage.includes("不在小程序环境中")) {
+    showNativeToast("请在微信小程序中打开此页面以使用蓝牙功能", 3000);
+  } else if (errorMessage.includes("postMessage")) {
+    showNativeToast("通信接口不可用，请升级微信版本", 3000);
+  } else if (errorMessage.includes("超时")) {
+    showNativeToast("通信超时，请检查网络连接后重试", 3000);
+  } else {
+    showNativeToast("与小程序通信失败，请稍后重试", 2000);
+  }
 }
 
 function scanDevices() {
@@ -403,15 +452,84 @@ onMounted(() => {
   initWx();
   // checkBluetoothAvailable();
 });
+
+/**
+ * 使用URL方式向小程序发送字符串消息
+ * 这是推荐的方式，实时性和可靠性更好
+ */
+function sendMessageByUrl(message) {
+  console.log("通过URL发送消息:", message);
+
+  const timestamp = Date.now();
+
+  let baseUrl = window.location.href.split("?")[0];
+  const newUrl = `${baseUrl}?msg=${message}&t=${timestamp}`;
+
+  window.location.href = newUrl;
+}
+
+/**
+ * 使用URL方式向小程序发送JSON对象消息
+ */
+function sendJsonMessageByUrl(jsonMessage) {
+  // 将JSON对象转换为字符串
+  const messageStr = JSON.stringify(jsonMessage);
+  // 调用上面的函数发送消息
+  sendMessageByUrl(messageStr);
+}
+
+/**
+ * 使用postMessage方式向小程序发送消息
+ * 这是备用方式，可能存在延迟
+ */
+function sendMessageByPostMessage(message) {
+  console.log("通过postMessage发送消息:", message);
+
+  try {
+    // 调用微信小程序提供的API
+    wx.miniProgram.postMessage({
+      data: message,
+    });
+
+    // 尝试执行页面操作来触发消息传递（尽管用户反馈这种方式不行）
+    setTimeout(() => {
+      window.scrollTo(0, 0);
+    }, 100);
+  } catch (error) {
+    console.error("postMessage调用失败:", error);
+  }
+}
+
+/**
+ * 监听来自小程序的消息
+ */
+function onMessageFromMiniProgram(e) {
+  // 这里是H5接收小程序消息的回调函数
+  // 实际使用时需要根据小程序的通信协议进行实现
+  console.log("H5收到来自小程序的消息:", e);
+}
+
+// 初始化微信小程序环境检测
+function initWxMiniProgram() {
+  if (typeof window.wx !== "undefined") {
+    console.log("检测到微信小程序环境");
+    // 这里可以添加更多的初始化逻辑
+  }
+}
+
+// 页面加载完成后初始化
+window.onload = function () {
+  initWxMiniProgram();
+};
 </script>
 
 <style scoped lang="scss">
 .home-container {
   background: linear-gradient(#ccdee8 0%, #f7f7f7 100%);
-  height: 100%;
+  min-height: 100%;
   width: 100%;
   padding: 8px 15px 20px;
-  overflow-y: scroll;
+  //overflow-y: scroll;
 }
 .title {
   color: #242748;
